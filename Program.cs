@@ -28,12 +28,12 @@ namespace FitnessTrackerApp
             {
                 var UserDetail = new User
                 {
-                    Name = "Jamith Nimantha",
+                    Name = "Mohamed Refaie",
                     Gender = Enumeration.Gender.MALE,
-                    UserName = "jamith",
-                    Password = PasswordManager.GetSaltedHash("1234"),
+                    UserName = "Refa3e",
+                    Password = PasswordManager.GetSaltedHash("1111"),
                     Height = 183,
-                    DateofBirth = new DateTime(1998, 04, 19),
+                    DateofBirth = new DateTime(2006, 09, 14),
                 };
                 UserService.Instance.AddUser(UserDetail);
             }
