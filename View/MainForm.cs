@@ -5,17 +5,20 @@ namespace FitnessTrackerApp.View
 {
     public partial class MainForm : Form
     {
+
+       
         private readonly string _userName;
         public MainForm(string UserName)
         {
             _userName = UserName;
             InitializeComponent();
+
+            tabControl1.TabPages.Remove(tabReport); 
+            tabControl1.TabPages.Remove(tabPrediction);
             LoadProfileTab();
             LoadWeightEntryTab();
             LoadWorkoutEntryTab();
             LoadCheatMealEntryTab();
-            LoadReportTab();
-            LoadPredictionTab();
             LoadDashboardTab();
         }
 
@@ -30,27 +33,9 @@ namespace FitnessTrackerApp.View
             this.tabDash.Controls.Add(Form);
         }
 
-        private void LoadPredictionTab()
-        {
-            var Form = new PredictionForm(this._userName);
-            Form.Dock = System.Windows.Forms.DockStyle.Fill;
-            Form.Location = new System.Drawing.Point(0, 0);
-            Form.Name = "PredictionForm";
-            Form.Size = new System.Drawing.Size(1105, 592);
-            Form.TabIndex = 0;
-            this.tabPrediction.Controls.Add(Form);
-        }
+     
 
-        private void LoadReportTab()
-        {
-            var Form = new ReportForm(this._userName);
-            Form.Dock = System.Windows.Forms.DockStyle.Fill;
-            Form.Location = new System.Drawing.Point(0, 0);
-            Form.Name = "ReportForm";
-            Form.Size = new System.Drawing.Size(1105, 592);
-            Form.TabIndex = 0;
-            this.tabReport.Controls.Add(Form);
-        }
+      
 
         private void LoadCheatMealEntryTab()
         {

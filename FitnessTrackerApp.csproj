@@ -83,18 +83,6 @@
     <Compile Include="View\MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="View\PredictionForm.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="View\PredictionForm.Designer.cs">
-      <DependentUpon>PredictionForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="View\ReportForm.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="View\ReportForm.Designer.cs">
-      <DependentUpon>ReportForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="View\SignUpForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -148,14 +136,8 @@
     <EmbeddedResource Include="View\MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="View\PredictionForm.resx">
-      <DependentUpon>PredictionForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="View\ProfileForm.resx">
       <DependentUpon>ProfileForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="View\ReportForm.resx">
-      <DependentUpon>ReportForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="View\SignUpForm.resx">
       <DependentUpon>SignUpForm.cs</DependentUpon>
