@@ -5,11 +5,15 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using FitnessTrackerApp.Model;
+using System.Collections.Generic;
+using FitnessTrackerApp.Utility;
 
 namespace FitnessTrackerApp.View
 {
     public partial class CheatMealForm : UserControl
     {
+
+        StackManager<CheatMealEntry> deletedCheatMeals = new StackManager<CheatMealEntry>();
         private readonly string _userName;
         private bool IsUpdate = false;
         private string _GUID;
@@ -195,25 +199,36 @@ namespace FitnessTrackerApp.View
 
         private void btnDelete_Click(object sender, EventArgs e)
         {
-            var selectedRows = dataGridView.SelectedRows;
-            if (selectedRows.Count == 0)
             {
-                MessageBox.Show("Please Select a Row!");
-                return;
-            }
+                if (dataGridView.SelectedRows.Count == 0)
+                {
+                    MessageBox.Show("Please Select a Row!");
+                    return;
+                }
 
-            var result = MessageBox.Show("Are you sure you want to delete this record?", "Confirm Delete", MessageBoxButtons.YesNo);
-            if (result == DialogResult.No)
-            {
-                return;
+                if (MessageBox.Show(
+                    "Are you sure you want to delete this record?",
+                    "Confirm Delete",
+                    MessageBoxButtons.YesNo) == DialogResult.No)
+                {
+                    return;
+                }
+
+                foreach (DataGridViewRow row in dataGridView.SelectedRows)
+                {
+                    string guid = row.Cells["GUID"].Value.ToString();
+
+                    var cheatMeal = CheatMealService.Instance.GetCheatMealEntryByGUID(guid);
+
+                 
+                    deletedCheatMeals.PushDeletedItem(cheatMeal);
+
+                    CheatMealService.Instance.DeleteCheatMealEntryByGUID(guid);
+                }
+
+                LoadTable();
+                MessageBox.Show("Cheat Meal Entry Deleted Successfully!");
             }
-            dataGridView.SelectedRows.Cast<DataGridViewRow>().ToList().ForEach(row =>
-            {
-                var GUID = row.Cells["GUID"].Value.ToString();
-                CheatMealService.Instance.DeleteCheatMealEntryByGUID(GUID);
-                dataGridView.Rows.Remove(row);
-            });
-            MessageBox.Show("Cheat Meal Entry Deleted Successfully!");
         }
 
         public void LoadTable()
@@ -242,5 +257,35 @@ namespace FitnessTrackerApp.View
                 btnAddEntry.BackColor = Color.Blue;
             }
         }
+
+        private void Undoo_Click(object sender, EventArgs e)
+        {
+            if (!deletedCheatMeals.HasItems())
+            {
+                MessageBox.Show("Nothing to undo!");
+                return;
+            }
+
+            var cheatMeal = deletedCheatMeals.UndoDelete();
+
+            if (cheatMeal == null)
+                return;
+
+            // نرجع الـ WeightEntry المرتبط
+            var weightEntry = new WeightEntry
+            {
+                GUID = cheatMeal.WeightEntryGUID,
+                UserName = cheatMeal.UserName,
+                Date = cheatMeal.Date,
+                Weight = WeightEntryService.Instance
+                    .FindLatestWeightEntryForUser(cheatMeal.UserName).Weight
+            };
+
+            CheatMealService.Instance.AddCheatMealEntry(cheatMeal, weightEntry);
+
+            LoadTable();
+            MessageBox.Show("Last delete undone successfully!");
+        }
+
     }
 }
