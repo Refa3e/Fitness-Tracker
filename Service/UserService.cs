@@ -1,110 +1,91 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using FitnessTrackerApp.Exceptions;
+﻿using FitnessTrackerApp.Exceptions;
 using FitnessTrackerApp.Model;
 using FitnessTrackerApp.Utility;
+using System.Collections.Generic;
 
 namespace FitnessTrackerApp.Service
 {
     public class UserService
     {
-        private static UserService instance;
-        private static readonly object lockObject = new object();
-
-        public static UserService Instance
+        public bool Login(string username, string password)
         {
-            get
+            List<User> allUsers = DataStorage.LoadData<User>();
+
+            foreach (User user in allUsers)
             {
-                if (instance == null)
+                if (string.Equals(user.UserName, username, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    lock (lockObject)
-                    {
-                        if (instance == null)
-                        {
-                            instance = new UserService();
-                        }
-                    }
+                    return PasswordManager.VerifyPassword(password, user.Password);
                 }
-                return instance;
             }
-        }
 
-        public bool Authenticate(string Username, string Password)
-        {
-            List<User> UserList = DataStorage.LoadData<User>();
-            var user = FindUserByUserName(UserList, Username);
-            if (user != null)
-            {
-                return PasswordManager.VerifyPassword(Password, user.Password);
-            }
             return false;
         }
 
-        public User FindUserByUserName(List<User> UserList, string UserName)
+        public User GetUserByName(string username)
         {
-            return UserList.FirstOrDefault(obj => obj.UserName.Equals(UserName));
-        }
+            List<User> allUsers = DataStorage.LoadData<User>();
 
-        public User FindUserByUserName(string UserName)
-        {
-            return GetAllUsers().FirstOrDefault(obj => obj.UserName.Equals(UserName));
-        }
-
-        public User AddUser(User User)
-        {
-            List<User> UserList = DataStorage.LoadData<User>();
-            var ExistingUser = FindUserByUserName(UserList, User.UserName);
-            if (ExistingUser != null)
+            foreach (User user in allUsers)
             {
-                throw new UserNameAlreadyExistsExeption(User.UserName);
+                if (string.Equals(user.UserName, username, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return user;
+                }
             }
-            UserList.Add(User);
-            DataStorage.SaveData(UserList);
 
-            return User;
+            return null;
         }
 
-        public void DeleteUser(User UserDetail)
+        public void AddNewUser(User newUser)
         {
-            List<User> UserList = GetAllUsers();
-            var user = FindUserByUserName(UserList, UserDetail.UserName);
-            if (user != null)
+            List<User> allUsers = DataStorage.LoadData<User>();
+
+            if (GetUserByName(newUser.UserName) != null)
             {
-                UserList.Remove(user);
-                DataStorage.SaveData(UserList);
-            } 
-            else
-            {
-                throw new UserNameNotFoundException(UserDetail.UserName);
+                throw new UserNameAlreadyExistsExeption(newUser.UserName);
             }
-            
+
+            allUsers.Add(newUser);
+            DataStorage.SaveData(allUsers);
         }
 
-        public User UpdateUser(User UpdatedUser)
+        public void DeleteUser(string username)
         {
-            List<User> UserList = GetAllUsers();
-            var ExistingUser = FindUserByUserName(UserList, UpdatedUser.UserName);
-            if (ExistingUser != null)
-            {
+            List<User> allUsers = DataStorage.LoadData<User>();
+            User userToDelete = GetUserByName(username);
 
-                ExistingUser.Password = UpdatedUser.Password;
-                ExistingUser.Height = UpdatedUser.Height;
-                ExistingUser.Gender = UpdatedUser.Gender;
-                ExistingUser.DateofBirth = UpdatedUser.DateofBirth;
-                ExistingUser.Name = UpdatedUser.Name;
-                DataStorage.SaveData(UserList);
-            }
-            else
+            if (userToDelete == null)
             {
-                throw new UserNameNotFoundException(UpdatedUser.UserName);
+                throw new UserNameNotFoundException(username);
             }
-            return ExistingUser;
+
+            allUsers.Remove(userToDelete);
+            DataStorage.SaveData(allUsers);
         }
 
-        public static List<User> GetAllUsers()
+        public void UpdateUser(User updatedUser)
+        {
+            List<User> allUsers = DataStorage.LoadData<User>();
+            User existingUser = GetUserByName(updatedUser.UserName);
+
+            if (existingUser == null)
+            {
+                throw new UserNameNotFoundException(updatedUser.UserName);
+            }
+
+            existingUser.Name = updatedUser.Name;
+            existingUser.Password = updatedUser.Password;
+            existingUser.Height = updatedUser.Height;
+            existingUser.Gender = updatedUser.Gender;
+            existingUser.DateofBirth = updatedUser.DateofBirth;
+
+            DataStorage.SaveData(allUsers);
+        }
+
+        public List<User> GetAllUsers()
         {
             return DataStorage.LoadData<User>();
         }
-
     }
 }

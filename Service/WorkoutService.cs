@@ -1,135 +1,130 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FitnessTrackerApp.Exceptions;
+﻿using FitnessTrackerApp.Exceptions;
 using FitnessTrackerApp.Model;
+using System;
+using System.Collections.Generic;
 
 namespace FitnessTrackerApp.Service
 {
     public class WorkoutService
     {
-        private static readonly object lockObject = new object();
-        private static WorkoutService instance;
+        private readonly WeightEntryService weightService = new WeightEntryService();
 
-        public static WorkoutService Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    lock (lockObject)
-                    {
-                        if (instance == null)
-                        {
-                            instance = new WorkoutService();
-                        }
-                    }
-                }
-                return instance;
-            }
-        }   
-
-        public List<WorkoutEntry> FindWorkoutsInAscByUserName(string UserName)
-        {
-            return GetWorkouts()
-                .Where(obj => obj.UserName.Equals(UserName))
-                .OrderBy(obj => obj.Date)
-                .ToList();
-        }
-
-        public List<WorkoutEntry> FindWorkoutsInDescByUserName(string UserName)
-        {
-
-            return GetWorkouts()
-                .Where(obj => obj.UserName.Equals(UserName))
-                .OrderByDescending(obj => obj.Date)
-                .ToList();
-        }
-
-        public WorkoutEntry FindLatestWorkoutForUser(string UserName)
-        {
-            List<WorkoutEntry> workoutEntries = GetWorkouts();
-            if (workoutEntries.Count == 0)
-            {
-                return new WorkoutEntry();
-            }
-
-            return workoutEntries.Where(obj => obj.UserName.Equals(UserName)).OrderByDescending(obj => obj.Date).First();
-        }
-
-        public WorkoutEntry GetWorkoutByGUID(List<WorkoutEntry> Workouts, string GUID)
-        {
-            return Workouts.FirstOrDefault(obj => obj.GUID.Equals(GUID));
-        }
-
-        public WorkoutEntry GetWorkoutByGUID(string GUID)
-        {
-            return GetWorkouts().FirstOrDefault(obj => obj.GUID.Equals(GUID));
-        }
-
-        public List<WorkoutEntry> GetWorkouts()
+        private List<WorkoutEntry> GetAllWorkouts()
         {
             return DataStorage.LoadData<WorkoutEntry>();
         }
 
-
-        public void DeleteWorkoutByGUID(string GUID)
+        public List<WorkoutEntry> GetWorkoutsAscending(string username)
         {
-            List<WorkoutEntry> Workouts = GetWorkouts();
-            var ExistingWorkout = GetWorkoutByGUID(Workouts, GUID);
-            if (ExistingWorkout != null)
+            List<WorkoutEntry> allWorkouts = GetAllWorkouts();
+            List<WorkoutEntry> workouts = new List<WorkoutEntry>();
+
+            foreach (WorkoutEntry workout in allWorkouts)
             {
-                WeightEntryService.Instance.DeleteEntry(ExistingWorkout.WeightEntryGUID);
-                Workouts.Remove(ExistingWorkout);
-                DataStorage.SaveData(Workouts);
-            } else
-            {
-                throw new RecordNotFoundExeption(GUID);
+                if (string.Equals(workout.UserName, username, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    workouts.Add(workout);
+                }
             }
-           
+
+            workouts.Sort((a, b) => a.Date.CompareTo(b.Date));
+            return workouts;
         }
 
-        public void AddWorkout(WorkoutEntry Workout, WeightEntry WeightEntry)
+        public List<WorkoutEntry> GetWorkoutsDescending(string username)
         {
-            List<WorkoutEntry> Workouts = GetWorkouts();
-            WeightEntry = WeightEntryService.Instance.AddEntry(WeightEntry);
-
-            Workouts.Add(Workout);
-            Workout.GUID = Guid.NewGuid().ToString();
-            Workout.WeightEntryGUID = WeightEntry.GUID;
-            DataStorage.SaveData(Workouts);
+            List<WorkoutEntry> ascending = GetWorkoutsAscending(username);
+            ascending.Reverse();
+            return ascending;
         }
 
-        public void UpdateWorkout(WorkoutEntry Workout, WeightEntry WeightEntry)
+        public WorkoutEntry GetLatestWorkout(string username)
         {
-            List<WorkoutEntry> Workouts = GetWorkouts();
-            var ExistingWorkout = GetWorkoutByGUID(Workouts, Workout.GUID);
-            if (ExistingWorkout != null)
+            List<WorkoutEntry> workouts = GetWorkoutsDescending(username);
+
+            if (workouts.Count == 0)
             {
-                ExistingWorkout.WorkoutName = Workout.WorkoutName;
-                ExistingWorkout.Date = Workout.Date;
-                ExistingWorkout.Intensity = Workout.Intensity;
-                ExistingWorkout.CaloriesBurned = Workout.CaloriesBurned;
-                
-                WeightEntryService.Instance.UpdateEntry(WeightEntry, Workout.WeightEntryGUID);
-                DataStorage.SaveData(Workouts);
+                return new WorkoutEntry();
             }
-            else
-            {
-                throw new RecordNotFoundExeption(Workout.GUID);
-            }
-            
+
+            return workouts[0];
         }
 
-        public bool CheckIfWeightEntryExistsInWorkout(string GUID)
-        {            
-            var ExistingWorkout = GetWorkouts().FirstOrDefault(obj => obj.WeightEntryGUID.Equals(GUID));
-            if (ExistingWorkout != null)
+        public WorkoutEntry GetWorkoutByGuid(string guid)
+        {
+            List<WorkoutEntry> allWorkouts = GetAllWorkouts();
+
+            foreach (WorkoutEntry workout in allWorkouts)
             {
-                return true;
+                if (workout.GUID == guid)
+                {
+                    return workout;
+                }
             }
+
+            return null;
+        }
+
+        public void AddNewWorkout(WorkoutEntry newWorkout, WeightEntry newWeight)
+        {
+            WeightEntry savedWeight = weightService.AddNewEntry(newWeight);
+
+            newWorkout.WeightEntryGUID = savedWeight.GUID;
+            newWorkout.GUID = Guid.NewGuid().ToString();
+
+            List<WorkoutEntry> allWorkouts = GetAllWorkouts();
+            allWorkouts.Add(newWorkout);
+            DataStorage.SaveData(allWorkouts);
+        }
+
+        public void UpdateWorkout(WorkoutEntry updatedWorkout, WeightEntry updatedWeight)
+        {
+            List<WorkoutEntry> allWorkouts = GetAllWorkouts();
+            WorkoutEntry workout = GetWorkoutByGuid(updatedWorkout.GUID);
+
+            if (workout == null)
+            {
+                throw new RecordNotFoundExeption(updatedWorkout.GUID);
+            }
+
+            workout.WorkoutName = updatedWorkout.WorkoutName;
+            workout.Intensity = updatedWorkout.Intensity;
+            workout.CaloriesBurned = updatedWorkout.CaloriesBurned;
+            workout.Date = updatedWorkout.Date;
+
+            weightService.UpdateEntry(updatedWeight, workout.WeightEntryGUID);
+
+            DataStorage.SaveData(allWorkouts);
+        }
+
+        public void DeleteWorkout(string guid)
+        {
+            List<WorkoutEntry> allWorkouts = GetAllWorkouts();
+            WorkoutEntry workout = GetWorkoutByGuid(guid);
+
+            if (workout == null)
+            {
+                throw new RecordNotFoundExeption(guid);
+            }
+
+            weightService.DeleteEntry(workout.WeightEntryGUID);
+
+            allWorkouts.Remove(workout);
+            DataStorage.SaveData(allWorkouts);
+        }
+
+        public bool IsWeightUsedInWorkout(string weightGuid)
+        {
+            List<WorkoutEntry> allWorkouts = GetAllWorkouts();
+
+            foreach (WorkoutEntry workout in allWorkouts)
+            {
+                if (workout.WeightEntryGUID == weightGuid)
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
     }

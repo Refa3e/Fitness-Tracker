@@ -60,8 +60,8 @@
     <Compile Include="Model\WorkoutEntry.cs" />
     <Compile Include="Service\CheatMealService.cs" />
     <Compile Include="Service\DataStorage.cs" />
-    <Compile Include="Service\WeightEntryService.cs" />
     <Compile Include="Service\UserService.cs" />
+    <Compile Include="Service\WeightEntryService.cs" />
     <Compile Include="Service\WorkoutService.cs" />
     <Compile Include="Utility\PasswordManager.cs" />
     <Compile Include="Utility\StackManager.cs" />

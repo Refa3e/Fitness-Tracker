@@ -1,252 +1,66 @@
-﻿using FitnessTrackerApp.Service;
+﻿using FitnessTrackerApp.Model;
+using FitnessTrackerApp.Service;
 using System;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
-using FitnessTrackerApp.Model;
 using System.Collections.Generic;
-using FitnessTrackerApp.Utility;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace FitnessTrackerApp.View
 {
     public partial class CheatMealForm : UserControl
     {
+        private readonly string username;
+        private readonly CheatMealService cheatMealService = new CheatMealService();
+        private readonly WeightEntryService weightService = new WeightEntryService();
 
-        StackManager<CheatMealEntry> deletedCheatMeals = new StackManager<CheatMealEntry>();
-        private readonly string _userName;
-        private bool IsUpdate = false;
-        private string _GUID;
-        public CheatMealForm(string UserName)
+        private bool isUpdateMode = false;
+        private string currentGuid = "";
+
+        private Stack<CheatMealEntry> deletedMeals = new Stack<CheatMealEntry>();
+
+        public CheatMealForm(string username)
         {
-            _userName = UserName;
+            this.username = username;
             InitializeComponent();
-            Clear();
+            RefreshForm();
         }
 
-        private void Clear()
+        private void RefreshForm()
         {
-            var latestWeightEntry = WeightEntryService.Instance.FindLatestWeightEntryForUser(_userName);
-            txtWeight.Text = latestWeightEntry.Weight.ToString();
+            WeightEntry latest = weightService.GetLatestEntry(username);
+            txtWeight.Text = latest.Weight.ToString();
+
             datePickerWeightEntryDate.Value = DateTime.Now;
             txtMealName.Text = "";
-            txtColories.Text = Convert.ToDecimal("0.00").ToString();
+            txtColories.Text = "0.00";
+
             LoadTable();
-            ChangeSaveUpdateButton();
-
+            UpdateButtonText();
         }
 
-        private void btnAddEntry_Click(object sender, EventArgs e)
-        {
-            if (IsUpdate)
-            {
-                UpdateCheatMealEntry();
-            }
-            else
-            {
-                SaveCheatMealEntry();
-            }
-        }
-
-        private void SaveCheatMealEntry()
-        {
-           if (string.IsNullOrEmpty(txtMealName.Text))
-            {
-                MessageBox.Show("Please Enter Meal Name!");
-                return;
-            }
-
-            if (string.IsNullOrEmpty(txtColories.Text))
-            {
-                MessageBox.Show("Please Enter Calories Gained!");
-                return;
-            }
-
-            if (string.IsNullOrEmpty(txtWeight.Text))
-            {
-                MessageBox.Show("Please Enter Weight!");
-                return;
-            }
-
-            if (Convert.ToDecimal(txtColories.Text) <= 0)
-            {
-                MessageBox.Show("Please Enter Valid Calories Gained!");
-                return;
-            }
-
-            if (Convert.ToDecimal(txtWeight.Text) <= 0)
-            {
-                MessageBox.Show("Please Enter Valid Weight!");
-                return;
-            }
-
-            if (datePickerWeightEntryDate.Value.Date > DateTime.Now.Date)
-            {
-                MessageBox.Show("Please Enter Valid Date!");
-                return;
-            }
-
-            var WeightEntry = new WeightEntry();
-            WeightEntry.UserName = _userName;
-            WeightEntry.Weight = Convert.ToDecimal(txtWeight.Text);
-            WeightEntry.Date = datePickerWeightEntryDate.Value;
-
-            var CheatMealEntry = new CheatMealEntry()
-            {
-                UserName = _userName,
-                MealName = txtMealName.Text,
-                Calories = Convert.ToDecimal(txtColories.Text),
-                Date = datePickerWeightEntryDate.Value
-            };
-
-            try
-            {
-                CheatMealService.Instance.AddCheatMealEntry(CheatMealEntry, WeightEntry);
-                MessageBox.Show("Cheat Meal Entry Added Successfully!");
-                Clear();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        private void UpdateCheatMealEntry()
-        {
-            if (string.IsNullOrEmpty(txtMealName.Text))
-            {
-                MessageBox.Show("Please Enter Meal Name!");
-                return;
-            }
-
-            if (string.IsNullOrEmpty(txtColories.Text))
-            {
-                MessageBox.Show("Please Enter Calories Gained!");
-                return;
-            }
-
-            if (string.IsNullOrEmpty(txtWeight.Text))
-            {
-                MessageBox.Show("Please Enter Weight!");
-                return;
-            }
-
-            if (Convert.ToDecimal(txtColories.Text) <= 0)
-            {
-                MessageBox.Show("Please Enter Valid Calories Gained!");
-                return;
-            }
-
-            if (Convert.ToDecimal(txtWeight.Text) <= 0)
-            {
-                MessageBox.Show("Please Enter Valid Weight!");
-                return;
-            }
-
-            if (datePickerWeightEntryDate.Value.Date > DateTime.Now.Date)
-            {
-                MessageBox.Show("Please Enter Valid Date!");
-                return;
-            }
-
-            var Meal = CheatMealService.Instance.GetCheatMealEntryByGUID(_GUID);
-            Meal.MealName = txtMealName.Text;
-            Meal.Calories = Convert.ToDecimal(txtColories.Text);
-            Meal.Date = datePickerWeightEntryDate.Value;
-
-            var WeightEntry = new WeightEntry();
-            WeightEntry.Date = datePickerWeightEntryDate.Value;
-            WeightEntry.UserName = _userName;
-            WeightEntry.Weight = Convert.ToDecimal(txtWeight.Text);
-            WeightEntry.GUID = Meal.WeightEntryGUID;
-
-            try
-            {
-                CheatMealService.Instance.UpdateCheatMealEntry(Meal, WeightEntry);
-                MessageBox.Show("Workout Entry Updated Successfully!");
-                this.IsUpdate = false;
-                Clear();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        private void btnClear_Click(object sender, EventArgs e)
-        {
-            Clear();
-        }
-
-        private void btnUpdate_Click(object sender, EventArgs e)
-        {
-            var selectedRows = dataGridView.SelectedRows;
-            if (selectedRows.Count == 0)
-            {
-                MessageBox.Show("Please Select a Row!");
-                return;
-            }
-
-            var selectedRow = selectedRows[0];
-            this._GUID = selectedRow.Cells["GUID"].Value.ToString();
-            txtMealName.Text = selectedRow.Cells["MealName"].Value.ToString();
-            txtWeight.Text = selectedRow.Cells["weight"].Value.ToString();
-            txtColories.Text = selectedRow.Cells["Calories"].Value.ToString();
-            datePickerWeightEntryDate.Value = Convert.ToDateTime(selectedRow.Cells["Date"].Value.ToString());
-            this.IsUpdate = true;
-            ChangeSaveUpdateButton();
-        }
-
-        private void btnDelete_Click(object sender, EventArgs e)
-        {
-            {
-                if (dataGridView.SelectedRows.Count == 0)
-                {
-                    MessageBox.Show("Please Select a Row!");
-                    return;
-                }
-
-                if (MessageBox.Show(
-                    "Are you sure you want to delete this record?",
-                    "Confirm Delete",
-                    MessageBoxButtons.YesNo) == DialogResult.No)
-                {
-                    return;
-                }
-
-                foreach (DataGridViewRow row in dataGridView.SelectedRows)
-                {
-                    string guid = row.Cells["GUID"].Value.ToString();
-
-                    var cheatMeal = CheatMealService.Instance.GetCheatMealEntryByGUID(guid);
-
-                 
-                    deletedCheatMeals.PushDeletedItem(cheatMeal);
-
-                    CheatMealService.Instance.DeleteCheatMealEntryByGUID(guid);
-                }
-
-                LoadTable();
-                MessageBox.Show("Cheat Meal Entry Deleted Successfully!");
-            }
-        }
-
-        public void LoadTable()
+        private void LoadTable()
         {
             dataGridView.Rows.Clear();
-            var Entries = CheatMealService.Instance.FindCheatMealEntriesInDescByUserName(_userName);
-            var WeightEntries = WeightEntryService.Instance.FindWeightEntriesInDescByUserName(_userName);
-            Entries.ForEach(CheatMeal =>
-            {
-                var WeightEntry = WeightEntryService.Instance.GetWeightEntryByGUID(WeightEntries, CheatMeal.WeightEntryGUID);
-                dataGridView.Rows.Add(CheatMeal.MealName, CheatMeal.Calories, WeightEntry.Weight, CheatMeal.Date, CheatMeal.GUID);
-            });
 
+            List<CheatMealEntry> meals = cheatMealService.GetMealsDescending(username);
+
+            foreach (CheatMealEntry meal in meals)
+            {
+                WeightEntry weight = weightService.GetEntryByGuid(meal.WeightEntryGUID);
+
+                dataGridView.Rows.Add(
+                    meal.MealName,
+                    meal.Calories,
+                    weight?.Weight ?? 0,
+                    meal.Date.ToShortDateString(),
+                    meal.GUID
+                );
+            }
         }
 
-        public void ChangeSaveUpdateButton()
+        private void UpdateButtonText()
         {
-            if (IsUpdate)
+            if (isUpdateMode)
             {
                 btnAddEntry.Text = "Update";
                 btnAddEntry.BackColor = Color.Green;
@@ -258,34 +72,147 @@ namespace FitnessTrackerApp.View
             }
         }
 
+        private void btnAddEntry_Click(object sender, EventArgs e)
+        {
+            if (isUpdateMode)
+            {
+                UpdateMeal();
+            }
+            else
+            {
+                SaveNewMeal();
+            }
+        }
+
+        private void SaveNewMeal()
+        {
+            if (string.IsNullOrEmpty(txtMealName.Text.Trim()) ||
+                Convert.ToDecimal(txtColories.Text) <= 0 ||
+                Convert.ToDecimal(txtWeight.Text) <= 0 ||
+                datePickerWeightEntryDate.Value.Date > DateTime.Now.Date)
+            {
+                MessageBox.Show("Please fill all fields correctly and choose a valid date!");
+                return;
+            }
+
+            CheatMealEntry newMeal = new CheatMealEntry
+            {
+                UserName = username,
+                MealName = txtMealName.Text,
+                Calories = Convert.ToDecimal(txtColories.Text),
+                Date = datePickerWeightEntryDate.Value
+            };
+
+            WeightEntry newWeight = new WeightEntry
+            {
+                UserName = username,
+                Weight = Convert.ToDecimal(txtWeight.Text),
+                Date = datePickerWeightEntryDate.Value
+            };
+
+            cheatMealService.AddNewMeal(newMeal, newWeight);
+            MessageBox.Show("Cheat meal added successfully!");
+            RefreshForm();
+        }
+
+        private void UpdateMeal()
+        {
+            if (string.IsNullOrEmpty(txtMealName.Text.Trim()) ||
+                Convert.ToDecimal(txtColories.Text) <= 0 ||
+                Convert.ToDecimal(txtWeight.Text) <= 0 ||
+                datePickerWeightEntryDate.Value.Date > DateTime.Now.Date)
+            {
+                MessageBox.Show("Please fill all fields correctly!");
+                return;
+            }
+
+            CheatMealEntry meal = cheatMealService.GetMealByGuid(currentGuid);
+
+            meal.MealName = txtMealName.Text;
+            meal.Calories = Convert.ToDecimal(txtColories.Text);
+            meal.Date = datePickerWeightEntryDate.Value;
+
+            WeightEntry weight = new WeightEntry
+            {
+                UserName = username,
+                Weight = Convert.ToDecimal(txtWeight.Text),
+                Date = datePickerWeightEntryDate.Value
+            };
+
+            cheatMealService.UpdateMeal(meal, weight);
+            MessageBox.Show("Cheat meal updated successfully!");
+            isUpdateMode = false;
+            RefreshForm();
+        }
+
+        private void btnClear_Click(object sender, EventArgs e)
+        {
+            RefreshForm();
+        }
+
+        private void btnUpdate_Click(object sender, EventArgs e)
+        {
+            if (dataGridView.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Please select a row to update!");
+                return;
+            }
+
+            DataGridViewRow row = dataGridView.SelectedRows[0];
+            currentGuid = row.Cells[4].Value.ToString();
+
+            txtMealName.Text = row.Cells[0].Value.ToString();
+            txtColories.Text = row.Cells[1].Value.ToString();
+            txtWeight.Text = row.Cells[2].Value.ToString();
+            datePickerWeightEntryDate.Value = Convert.ToDateTime(row.Cells[3].Value);
+
+            isUpdateMode = true;
+            UpdateButtonText();
+        }
+
+        private void btnDelete_Click(object sender, EventArgs e)
+        {
+            if (dataGridView.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Please select a row to delete!");
+                return;
+            }
+
+            if (MessageBox.Show("Are you sure you want to delete this cheat meal?", "Confirm Delete", MessageBoxButtons.YesNo) == DialogResult.No)
+            {
+                return;
+            }
+
+            string guid = dataGridView.SelectedRows[0].Cells[4].Value.ToString();
+            CheatMealEntry meal = cheatMealService.GetMealByGuid(guid);
+
+            deletedMeals.Push(meal);
+            cheatMealService.DeleteMeal(guid);
+
+            LoadTable();
+            MessageBox.Show("Cheat meal deleted successfully!");
+        }
+
         private void Undoo_Click(object sender, EventArgs e)
         {
-            if (!deletedCheatMeals.HasItems())
+            if (deletedMeals.Count == 0)
             {
                 MessageBox.Show("Nothing to undo!");
                 return;
             }
 
-            var cheatMeal = deletedCheatMeals.UndoDelete();
+            CheatMealEntry meal = deletedMeals.Pop();
 
-            if (cheatMeal == null)
-                return;
-
-            // نرجع الـ WeightEntry المرتبط
-            var weightEntry = new WeightEntry
+            WeightEntry weight = new WeightEntry
             {
-                GUID = cheatMeal.WeightEntryGUID,
-                UserName = cheatMeal.UserName,
-                Date = cheatMeal.Date,
-                Weight = WeightEntryService.Instance
-                    .FindLatestWeightEntryForUser(cheatMeal.UserName).Weight
+                UserName = username,
+                Date = meal.Date,
+                Weight = weightService.GetLatestEntry(username).Weight
             };
 
-            CheatMealService.Instance.AddCheatMealEntry(cheatMeal, weightEntry);
-
+            cheatMealService.AddNewMeal(meal, weight);
             LoadTable();
-            MessageBox.Show("Last delete undone successfully!");
+            MessageBox.Show("Undo successful!");
         }
-
     }
 }

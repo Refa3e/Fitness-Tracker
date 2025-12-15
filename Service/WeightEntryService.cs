@@ -1,113 +1,108 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using FitnessTrackerApp.Exceptions;
+﻿using FitnessTrackerApp.Exceptions;
 using FitnessTrackerApp.Model;
+using System;
+using System.Collections.Generic;
 
 namespace FitnessTrackerApp.Service
 {
     public class WeightEntryService
     {
-        private static WeightEntryService instance;
-        private static readonly object lockObject = new object();
-
-        public static WeightEntryService Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    lock (lockObject)
-                    {
-                        if (instance == null)
-                        {
-                            instance = new WeightEntryService();
-                        }
-                    }
-                }
-                return instance;
-            }
-        }
-
-        public List<WeightEntry> FindWeightEntriesInAscByUserName(string UserName)
-        {
-            return GetWeightEntries()
-                .Where(obj => obj.UserName.Equals(UserName))
-                .OrderBy(obj => obj.Date)
-                .ToList();
-        }
-
-        public List<WeightEntry> FindWeightEntriesInDescByUserName(string UserName)
-        {
-
-            return GetWeightEntries()
-                .Where(obj => obj.UserName.Equals(UserName))
-                .OrderByDescending(obj => obj.Date)
-                .ToList();
-        }
-
-        public WeightEntry FindLatestWeightEntryForUser(string UserName)
-        {
-            List<WeightEntry> weightEntries = GetWeightEntries();
-            if (weightEntries.Count == 0)
-            {
-                return new WeightEntry();
-            }
-
-            return weightEntries.Where(obj => obj.UserName.Equals(UserName)).OrderByDescending(obj => obj.Date).First();
-        }
-
-        public WeightEntry GetWeightEntryByGUID(List<WeightEntry> WeightEntries, string GUID)
-        {
-            return WeightEntries.FirstOrDefault(obj => obj.GUID.Equals(GUID));
-        }
-
-        public WeightEntry AddEntry(WeightEntry WeightEntry)
-        {
-            List<WeightEntry> WeightEntries = GetWeightEntries();
-            WeightEntry.GUID = System.Guid.NewGuid().ToString();
-            WeightEntries.Add(WeightEntry);
-            DataStorage.SaveData(WeightEntries);
-
-            return WeightEntry;
-        }
-
-        public void DeleteEntry(string GUID)
-        {
-            List<WeightEntry> WeightEntries = GetWeightEntries();
-            var WeightEntry = GetWeightEntryByGUID(WeightEntries, GUID);
-            if (WeightEntry != null)
-            {
-                WeightEntries.Remove(WeightEntry);
-                DataStorage.SaveData(WeightEntries);
-            } 
-            else
-            {
-                throw new RecordNotFoundExeption(GUID);
-            }
-            
-        }
-
-        public WeightEntry UpdateEntry(WeightEntry Entry, string GUID)
-        {
-            List<WeightEntry> WeightEntries = GetWeightEntries();
-            var WeightEntry = GetWeightEntryByGUID(WeightEntries, GUID);
-            if (WeightEntry != null)
-            {
-                WeightEntry.Weight = Entry.Weight;
-                WeightEntry.Date = Entry.Date;
-                DataStorage.SaveData(WeightEntries);
-            }
-            else
-            {
-                throw new RecordNotFoundExeption(GUID);
-            }
-            return Entry;
-        }
-
-        public static List<WeightEntry> GetWeightEntries()
+        private List<WeightEntry> GetAllEntries()
         {
             return DataStorage.LoadData<WeightEntry>();
         }
 
+        public List<WeightEntry> GetEntriesAscending(string username)
+        {
+            List<WeightEntry> allEntries = GetAllEntries();
+            List<WeightEntry> entries = new List<WeightEntry>();
+
+            foreach (WeightEntry entry in allEntries)
+            {
+                if (string.Equals(entry.UserName, username, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    entries.Add(entry);
+                }
+            }
+
+            entries.Sort((a, b) => a.Date.CompareTo(b.Date));
+            return entries;
+        }
+
+        public List<WeightEntry> GetEntriesDescending(string username)
+        {
+            List<WeightEntry> ascending = GetEntriesAscending(username);
+            ascending.Reverse();
+            return ascending;
+        }
+
+        public WeightEntry GetLatestEntry(string username)
+        {
+            List<WeightEntry> entries = GetEntriesDescending(username);
+
+            if (entries.Count == 0)
+            {
+                return new WeightEntry();
+            }
+
+            return entries[0];
+        }
+
+        public WeightEntry GetEntryByGuid(string guid)
+        {
+            List<WeightEntry> allEntries = GetAllEntries();
+
+            foreach (WeightEntry entry in allEntries)
+            {
+                if (entry.GUID == guid)
+                {
+                    return entry;
+                }
+            }
+
+            return null;
+        }
+
+        public WeightEntry AddNewEntry(WeightEntry newEntry)
+        {
+            List<WeightEntry> allEntries = GetAllEntries();
+
+            newEntry.GUID = Guid.NewGuid().ToString();
+
+            allEntries.Add(newEntry);
+            DataStorage.SaveData(allEntries);
+
+            return newEntry;
+        }
+
+        public void DeleteEntry(string guid)
+        {
+            List<WeightEntry> allEntries = GetAllEntries();
+            WeightEntry entry = GetEntryByGuid(guid);
+
+            if (entry == null)
+            {
+                throw new RecordNotFoundExeption(guid);
+            }
+
+            allEntries.Remove(entry);
+            DataStorage.SaveData(allEntries);
+        }
+
+        public void UpdateEntry(WeightEntry updatedEntry, string guid)
+        {
+            List<WeightEntry> allEntries = GetAllEntries();
+            WeightEntry entry = GetEntryByGuid(guid);
+
+            if (entry == null)
+            {
+                throw new RecordNotFoundExeption(guid);
+            }
+
+            entry.Weight = updatedEntry.Weight;
+            entry.Date = updatedEntry.Date;
+
+            DataStorage.SaveData(allEntries);
+        }
     }
 }

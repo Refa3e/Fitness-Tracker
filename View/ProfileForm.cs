@@ -1,133 +1,107 @@
-﻿using FitnessTrackerApp.Service;
+﻿using FitnessTrackerApp.Enumeration;
 using FitnessTrackerApp.Model;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
-using FitnessTrackerApp.Enumeration;
+using FitnessTrackerApp.Service;
 using FitnessTrackerApp.Utility;
-using FitnessTrackerApp.Exceptions;
+using System;
+using System.Windows.Forms;
 
 namespace FitnessTrackerApp.View
 {
     public partial class ProfileForm : UserControl
     {
-        private readonly string _userName;
-        private User User;
-        public ProfileForm(string UserName)
+        private readonly string username;
+        private readonly UserService userService = new UserService();
+        private User user;
+
+        public ProfileForm(string username)
         {
-            _userName = UserName;
+            this.username = username;
             InitializeComponent();
-            LoadDate();
+            LoadData();
         }
 
-        private void lblSep_Click(object sender, EventArgs e)
+        private void LoadData()
         {
+            user = userService.GetUserByName(username);
 
-        }
+            txtUserName.Text = user.UserName;
+            txtUserName.Enabled = false;
 
-        private void LoadDate()
-        { 
-            this.User = UserService.Instance.FindUserByUserName(_userName);
-            this.txtUserName.Text = User.UserName;
-            this.txtUserName.Enabled = false;
-            this.txtName.Text = User.Name;
-            this.txtHeight.Text = User.Height.ToString();
-            this.datePickerDOB.Value = User.DateofBirth;
-            this.cmbGender.SelectedItem = User.Gender;
-            this.txtPassword.Text = "";
-            this.txtConfirmPassword.Text = "";
-           
+            txtName.Text = user.Name;
+            txtHeight.Text = user.Height.ToString();
+            datePickerDOB.Value = user.DateofBirth;
+            cmbGender.SelectedItem = user.Gender;
+
+            txtPassword.Text = "";
+            txtConfirmPassword.Text = "";
         }
 
         private void btnUpdateProfile_Click(object sender, EventArgs e)
         {
-            string Name = this.txtName.Text;
-            decimal Height = Convert.ToDecimal(this.txtHeight.Text);
-            Gender Gender = (Gender)cmbGender.SelectedItem;
-            DateTime DOB = datePickerDOB.Value.Date;
+            string name = txtName.Text.Trim();
+            decimal height = Convert.ToDecimal(txtHeight.Text.Trim());
+            Gender gender = (Gender)cmbGender.SelectedItem;
+            DateTime dob = datePickerDOB.Value.Date;
 
-            if (string.IsNullOrEmpty(Name))
+            if (string.IsNullOrEmpty(name))
             {
-                MessageBox.Show("Please Enter Name!");
+                MessageBox.Show("Please enter name!");
                 return;
             }
 
-            if (Height <= 0)
+            if (height <= 0)
             {
-                MessageBox.Show("Please Enter Height!");
+                MessageBox.Show("Please enter valid height!");
                 return;
             }
 
-            if (DOB >= DateTime.Now)
+            if (dob >= DateTime.Now.Date)
             {
-                MessageBox.Show("Please Enter Valid Date of Birth!");
+                MessageBox.Show("Invalid date of birth!");
                 return;
             }
 
+            user.Name = name;
+            user.Height = height;
+            user.Gender = gender;
+            user.DateofBirth = dob;
 
-            if (string.IsNullOrEmpty(Name))
-            {
-                MessageBox.Show("Please Enter Name!");
-                return;
-            }
-
-            try
-            {
-                User.Name = Name;
-                User.Height = Height;
-                User.Gender = Gender;
-                User.DateofBirth = DOB;
-                UserService.Instance.UpdateUser(User);
-                MessageBox.Show("User Profile Details Successfully!");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-
+            userService.UpdateUser(user);
+            MessageBox.Show("Profile updated successfully!");
         }
 
         private void btnUpdatePassword_Click(object sender, EventArgs e)
         {
-            string Password = txtPassword.Text;
-            string ConfirmPassword = txtConfirmPassword.Text;
+            string password = txtPassword.Text;
+            string confirm = txtConfirmPassword.Text;
 
-            if (string.IsNullOrEmpty(Password))
+            if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirm))
             {
-                MessageBox.Show("Please Enter PassWord!");
+                MessageBox.Show("Please fill both password fields!");
                 return;
             }
 
-            if (string.IsNullOrEmpty(ConfirmPassword))
+            if (password != confirm)
             {
-                MessageBox.Show("Please Enter Confirm PassWord!");
+                MessageBox.Show("Passwords do not match!");
                 return;
             }
 
-            if (Password != ConfirmPassword)
-            {
-                MessageBox.Show("Password and Confirm Password does not match!");
-                return;
-            }
-            else
-            {
-                User.Password = PasswordManager.GetSaltedHash(Password);
-                UserService.Instance.UpdateUser(User);
-                LoadDate();
-                MessageBox.Show("Password Updated!");
-            }
+            user.Password = PasswordManager.GetSaltedHash(password);
+            userService.UpdateUser(user);
+
+            LoadData();
+            MessageBox.Show("Password updated successfully!");
         }
 
         private void btnClear_Click(object sender, EventArgs e)
         {
-            LoadDate();
+            LoadData();
+        }
+
+        private void lblSep_Click(object sender, EventArgs e)
+        {
+            // Empty event handler
         }
     }
 }

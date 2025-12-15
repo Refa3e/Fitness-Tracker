@@ -1,38 +1,42 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using FitnessTrackerApp.Utility;
+using Newtonsoft.Json;
 
 namespace FitnessTrackerApp.Service
 {
+
     public class DataStorage
     {
+
+
+        private static readonly string FolderPath = Util.JSON_STORAGE_PATH;
+
         public static void SaveData<T>(List<T> dataList)
         {
-            string JSONPath = GetJSONFilePath<T>();
-            string jsonData = JsonConvert.SerializeObject(dataList, Formatting.Indented);
-            File.WriteAllText(JSONPath, jsonData);
+            string filePath = GetFilePath<T>();
+            string jsonText = JsonConvert.SerializeObject(dataList, Formatting.Indented);
+            File.WriteAllText(filePath, jsonText);
         }
 
-        public static string GetJSONFilePath<T>()
+        private static string GetFilePath<T>()
         {
             string typeName = typeof(T).Name;
-            string JSONFileName = $"{typeName}.json";
-            return Path.Combine(Util.JSON_STORAGE_PATH, JSONFileName);
+            string fileName = typeName + ".json";
+            return Path.Combine(FolderPath, fileName);
         }
 
         public static List<T> LoadData<T>()
         {
-            string JSONPath = GetJSONFilePath<T>();
-            if (File.Exists(JSONPath))
-            {
-                string jsonData = File.ReadAllText(JSONPath);
-                return JsonConvert.DeserializeObject<List<T>>(jsonData);
-            }
-            else
+            string filePath = GetFilePath<T>();
+
+            if (!File.Exists(filePath))
             {
                 return new List<T>();
             }
+
+            string jsonText = File.ReadAllText(filePath);
+            return JsonConvert.DeserializeObject<List<T>>(jsonText) ?? new List<T>();
         }
     }
 }

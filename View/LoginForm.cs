@@ -1,75 +1,59 @@
 ﻿using FitnessTrackerApp.Service;
 using System;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace FitnessTrackerApp.View
 {
     public partial class LoginForm : Form
     {
-        private readonly UserService _userService;
+        private readonly UserService userService = new UserService();
+
         public LoginForm()
         {
             InitializeComponent();
-            _userService = UserService.Instance;
-        }
-
-        private void usernameField_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void LoginForm_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void passwordField_TextChanged(object sender, EventArgs e)
-        {
-
         }
 
         private void btnLogin_Click(object sender, EventArgs e)
         {
-            string _UserName = usernameField.Text.Trim();
-            string _Password = passwordField.Text.Trim();
+            string username = usernameField.Text.Trim();
+            string password = passwordField.Text.Trim();
 
-            if (string.IsNullOrEmpty(_UserName))
+            if (string.IsNullOrEmpty(username))
             {
-                MessageBox.Show("Please Enter UserName!");
+                MessageBox.Show("Please enter username!");
                 return;
             }
 
-            if (string.IsNullOrEmpty(_Password))
+            if (string.IsNullOrEmpty(password))
             {
-                MessageBox.Show("Please Enter PassWord!");
+                MessageBox.Show("Please enter password!");
                 return;
             }
 
-            if (_userService.Authenticate(_UserName, _Password))
+            if (userService.Login(username, password))
             {
                 this.Hide();
-                var mainForm = new MainForm(_UserName);
+
+                MainForm mainForm = new MainForm(username);
                 mainForm.Location = this.Location;
                 mainForm.StartPosition = FormStartPosition.Manual;
-                mainForm.FormClosing += delegate { Application.Exit(); };
+                mainForm.FormClosing += (s, args) => Application.Exit();
                 mainForm.ShowDialog();
+
                 this.Dispose();
             }
             else
             {
-                MessageBox.Show("Please provide valid credentials!");
-                return;
+                MessageBox.Show("Invalid username or password!");
             }
-
         }
 
         private void lblSignUp_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            var signUpForm = new SignUpForm();
+            SignUpForm signUpForm = new SignUpForm();
             signUpForm.Location = this.Location;
             signUpForm.StartPosition = FormStartPosition.Manual;
-            signUpForm.FormClosing += delegate { this.Show(); };
+            signUpForm.FormClosing += (s, args) => this.Show();
             signUpForm.Show();
             this.Hide();
         }
@@ -78,5 +62,10 @@ namespace FitnessTrackerApp.View
         {
             Application.Exit();
         }
+
+        // Empty event handlers to avoid designer errors
+        private void LoginForm_Load(object sender, EventArgs e) { }
+        private void passwordField_TextChanged(object sender, EventArgs e) { }
+        private void usernameField_TextChanged(object sender, EventArgs e) { }
     }
 }

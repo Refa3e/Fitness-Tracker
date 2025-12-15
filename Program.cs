@@ -1,47 +1,54 @@
-﻿using System;
-using System.Windows.Forms;
-using FitnessTrackerApp.View;
-using FitnessTrackerApp.Model;
+﻿using FitnessTrackerApp.Model;
 using FitnessTrackerApp.Service;
 using FitnessTrackerApp.Utility;
-using FitnessTrackerApp.Exceptions;
+using FitnessTrackerApp.View;
+using System;
+using System.Windows.Forms;
 
 namespace FitnessTrackerApp
 {
     internal static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
+       
         [STAThread]
         static void Main()
         {
-            //InitializeData();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            CreateDefaultUserIfNotExists();
+
             Application.Run(new LoginForm());
         }
 
-        static void InitializeData()
+        private static void CreateDefaultUserIfNotExists()
         {
+            UserService userService = new UserService();
+
+            if (userService.GetUserByName("Refa3e") != null)
+            {
+                return; 
+            }
+
+            User defaultUser = new User
+            {
+                Name = "Mohamed Refaie",
+                Gender = Enumeration.Gender.MALE,
+                UserName = "Refa3e",
+                Password = PasswordManager.GetSaltedHash("1111"),
+                Height = 183,
+                DateofBirth = new DateTime(2006, 9, 14)
+            };
+
             try
             {
-                var UserDetail = new User
-                {
-                    Name = "Mohamed Refaie",
-                    Gender = Enumeration.Gender.MALE,
-                    UserName = "Refa3e",
-                    Password = PasswordManager.GetSaltedHash("1111"),
-                    Height = 183,
-                    DateofBirth = new DateTime(2006, 09, 14),
-                };
-                UserService.Instance.AddUser(UserDetail);
+                userService.AddNewUser(defaultUser);
+                Console.WriteLine("تم إنشاء المستخدم الافتراضي بنجاح!");
             }
-            catch (UserNameAlreadyExistsExeption ex)
+            catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine("حصل خطأ أثناء إنشاء المستخدم الافتراضي: " + ex.Message);
             }
-        
         }
     }
 }

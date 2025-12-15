@@ -1,5 +1,4 @@
 ﻿using FitnessTrackerApp.Enumeration;
-using FitnessTrackerApp.Exceptions;
 using FitnessTrackerApp.Model;
 using FitnessTrackerApp.Service;
 using FitnessTrackerApp.Utility;
@@ -10,104 +9,85 @@ namespace FitnessTrackerApp.View
 {
     public partial class SignUpForm : Form
     {
+        private readonly UserService userService = new UserService();
+        private readonly WeightEntryService weightService = new WeightEntryService();
+
         public SignUpForm()
         {
             InitializeComponent();
         }
 
-
         private void btnSignUp_Click(object sender, EventArgs e)
         {
-            string Name = txtName.Text.Trim();
-            string UserName = txtUserName.Text.Trim();
-            string Password = txtPassword.Text.Trim();
-            string ConfirmPassword = txtConfirmPassword.Text.Trim();
-            Gender Gender = (Gender)cmbGender.SelectedItem;
-            decimal Weight = Convert.ToDecimal(txtWeight.Text.Trim());
-            decimal Height = Convert.ToDecimal(txtHeight.Text.Trim());
-            DateTime DOB = datePickerDOB.Value.Date;
+            string name = txtName.Text.Trim();
+            string username = txtUserName.Text.Trim();
+            string password = txtPassword.Text.Trim();
+            string confirmPassword = txtConfirmPassword.Text.Trim();
+            Gender gender = (Gender)cmbGender.SelectedItem;
+            decimal weight = Convert.ToDecimal(txtWeight.Text.Trim());
+            decimal height = Convert.ToDecimal(txtHeight.Text.Trim());
+            DateTime dob = datePickerDOB.Value.Date;
 
-            if (string.IsNullOrEmpty(Name))
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(username) ||
+                string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirmPassword))
             {
-                MessageBox.Show("Please Enter Name!");
+                MessageBox.Show("Please fill all fields!");
                 return;
             }
 
-            if (string.IsNullOrEmpty(UserName))
+            if (password != confirmPassword)
             {
-                MessageBox.Show("Please Enter UserName!");
+                MessageBox.Show("Passwords do not match!");
                 return;
             }
 
-            if (string.IsNullOrEmpty(Password))
+            if (weight <= 0 || height <= 0)
             {
-                MessageBox.Show("Please Enter PassWord!");
+                MessageBox.Show("Weight and height must be greater than zero!");
                 return;
             }
 
-            if (string.IsNullOrEmpty(ConfirmPassword))
+            if (dob >= DateTime.Now.Date)
             {
-                MessageBox.Show("Please Enter Confirm PassWord!");
+                MessageBox.Show("Invalid date of birth!");
                 return;
             }
 
-            if (Password != ConfirmPassword)
+            User newUser = new User
             {
-                MessageBox.Show("Password and Confirm Password does not match!");
-                return;
-            }
+                Name = name,
+                UserName = username,
+                Password = PasswordManager.GetSaltedHash(password),
+                Height = height,
+                Gender = gender,
+                DateofBirth = dob
+            };
 
-            // validate weight
-
-            if (Weight <= 0)
+            WeightEntry firstWeight = new WeightEntry
             {
-                MessageBox.Show("Please Enter Valid Weight!");
-                return;
-            }
-
-            // validate height
-
-            if (Height <= 0)
-            {
-                MessageBox.Show("Please Enter Valid Height!");
-                return;
-            }
-
-            if (DOB >= DateTime.Now)
-            {
-                MessageBox.Show("Please Enter Valid Date of Birth!");
-                return;
-            }
-
-
-            var User = new User();
-            var WeightEntry = new WeightEntry();
-
-            // assign all the declared values to User object
-            User.Name = Name;
-            User.UserName = UserName;
-            User.Password = PasswordManager.GetSaltedHash(Password);
-            User.Height = Height;
-            User.DateofBirth = DOB;
-            User.Gender = Gender;
-            WeightEntry.Weight = Weight;
-            WeightEntry.Date = DateTime.Now;
-            WeightEntry.UserName = UserName;
+                UserName = username,
+                Weight = weight,
+                Date = DateTime.Now.Date
+            };
 
             try
             {
-                UserService.Instance.AddUser(User);
-                WeightEntryService.Instance.AddEntry(WeightEntry);
-                MessageBox.Show("User Sign Up Successfully!");
+                userService.AddNewUser(newUser);
+                weightService.AddNewEntry(firstWeight);
+
+                MessageBox.Show("Account created successfully!");
+
                 this.Hide();
-                var loginForm = new LoginForm();
+
+                LoginForm loginForm = new LoginForm();
                 loginForm.Location = this.Location;
                 loginForm.StartPosition = FormStartPosition.Manual;
-                loginForm.FormClosing += delegate { Application.Exit(); };
+                loginForm.FormClosing += (s, args) => Application.Exit();
                 loginForm.ShowDialog();
+
                 this.Dispose();
             }
-            catch (UserNameAlreadyExistsExeption ex)
+            catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }

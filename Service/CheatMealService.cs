@@ -2,128 +2,129 @@
 using FitnessTrackerApp.Model;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FitnessTrackerApp.Service
 {
     public class CheatMealService
     {
-        private static CheatMealService instance;
+        private readonly WeightEntryService weightService = new WeightEntryService();
 
-        private static readonly object lockObject = new object();
-
-        public static CheatMealService Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    lock (lockObject)
-                    {
-                        if (instance == null)
-                        {
-                            instance = new CheatMealService();
-                        }
-                    }
-                }
-                return instance;
-            }
-        }
-
-        public List<CheatMealEntry> GetCheatMeals()
+        private List<CheatMealEntry> GetAllMeals()
         {
             return DataStorage.LoadData<CheatMealEntry>();
         }
 
-        public bool CheckIfWeightEntryExistsInCheatMeal(string GUID)
+        public List<CheatMealEntry> GetMealsAscending(string username)
         {
-            CheatMealEntry cheatMealEntry = GetCheatMeals().FirstOrDefault(obj => obj.WeightEntryGUID.Equals(GUID));
-            if (cheatMealEntry != null)
+            List<CheatMealEntry> allMeals = GetAllMeals();
+            List<CheatMealEntry> meals = new List<CheatMealEntry>();
+
+            foreach (CheatMealEntry meal in allMeals)
             {
-                return true;
+                if (string.Equals(meal.UserName, username, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    meals.Add(meal);
+                }
             }
-            return false;
+
+            meals.Sort((a, b) => a.Date.CompareTo(b.Date));
+            return meals;
         }
 
-        public CheatMealEntry GetCheatMealEntryByGUID(List<CheatMealEntry> CheatMealEntries, string GUID)
+        public List<CheatMealEntry> GetMealsDescending(string username)
         {
-            return CheatMealEntries.FirstOrDefault(obj => obj.GUID.Equals(GUID));
+            List<CheatMealEntry> ascending = GetMealsAscending(username);
+            ascending.Reverse();
+            return ascending;
         }
 
-        public CheatMealEntry GetCheatMealEntryByGUID(string GUID)
+        public CheatMealEntry GetLatestMeal(string username)
         {
-            return GetCheatMeals().FirstOrDefault(obj => obj.GUID.Equals(GUID));
-        }
+            List<CheatMealEntry> meals = GetMealsDescending(username);
 
-        public List<CheatMealEntry> FindCheatMealEntriesInAscByUserName(string UserName)
-        {
-            return GetCheatMeals()
-                .Where(obj => obj.UserName.Equals(UserName))
-                .OrderBy(obj => obj.Date)
-                .ToList();
-        }
-
-        public List<CheatMealEntry> FindCheatMealEntriesInDescByUserName(string UserName)
-        {
-            return GetCheatMeals()
-                .Where(obj => obj.UserName.Equals(UserName))
-                .OrderByDescending(obj => obj.Date)
-                .ToList();
-        }
-
-        public CheatMealEntry FindLatestCheatMealEntryForUser(string UserName)
-        {
-            List<CheatMealEntry> cheatMealEntries = GetCheatMeals();
-            if (cheatMealEntries.Count == 0)
+            if (meals.Count == 0)
             {
                 return new CheatMealEntry();
             }
 
-            return cheatMealEntries.Where(obj => obj.UserName.Equals(UserName)).OrderByDescending(obj => obj.Date).First();
+            return meals[0];
         }
 
-        public void DeleteCheatMealEntryByGUID(string GUID)
+        public CheatMealEntry GetMealByGuid(string guid)
         {
-            List<CheatMealEntry> cheatMealEntries = GetCheatMeals();
-            CheatMealEntry cheatMealEntry = cheatMealEntries.FirstOrDefault(obj => obj.GUID.Equals(GUID));
-            if (cheatMealEntry == null)
+            List<CheatMealEntry> allMeals = GetAllMeals();
+
+            foreach (CheatMealEntry meal in allMeals)
             {
-                throw new RecordNotFoundExeption(GUID);
+                if (meal.GUID == guid)
+                {
+                    return meal;
+                }
             }
-            WeightEntryService.Instance.DeleteEntry(cheatMealEntry.WeightEntryGUID);
-            cheatMealEntries.Remove(cheatMealEntry);
-            DataStorage.SaveData(cheatMealEntries);
+
+            return null;
         }
 
-        public void AddCheatMealEntry(CheatMealEntry cheatMealEntry, WeightEntry WeightEntry)
+        public void AddNewMeal(CheatMealEntry newMeal, WeightEntry newWeight)
         {
-            List<CheatMealEntry> cheatMealEntries = GetCheatMeals();
-            WeightEntry = WeightEntryService.Instance.AddEntry(WeightEntry);
+            WeightEntry savedWeight = weightService.AddNewEntry(newWeight);
 
-            cheatMealEntry.WeightEntryGUID = WeightEntry.GUID;
-            cheatMealEntry.GUID = Guid.NewGuid().ToString();
-            cheatMealEntries.Add(cheatMealEntry);
-            DataStorage.SaveData(cheatMealEntries);
+            newMeal.WeightEntryGUID = savedWeight.GUID;
+            newMeal.GUID = Guid.NewGuid().ToString();
+
+            List<CheatMealEntry> allMeals = GetAllMeals();
+            allMeals.Add(newMeal);
+            DataStorage.SaveData(allMeals);
         }
 
-        public void UpdateCheatMealEntry(CheatMealEntry cheatMealEntry, WeightEntry WeightEntry)
+        public void UpdateMeal(CheatMealEntry updatedMeal, WeightEntry updatedWeight)
         {
-            List<CheatMealEntry> cheatMealEntries = GetCheatMeals();
-            CheatMealEntry cheatMealEntryToUpdate = cheatMealEntries.FirstOrDefault(obj => obj.GUID.Equals(cheatMealEntry.GUID));
-            if (cheatMealEntryToUpdate == null)
+            List<CheatMealEntry> allMeals = GetAllMeals();
+            CheatMealEntry meal = GetMealByGuid(updatedMeal.GUID);
+
+            if (meal == null)
             {
-                throw new RecordNotFoundExeption(cheatMealEntry.GUID);
+                throw new RecordNotFoundExeption(updatedMeal.GUID);
             }
-            WeightEntryService.Instance.UpdateEntry(WeightEntry, cheatMealEntry.WeightEntryGUID);
-            cheatMealEntryToUpdate.Date = cheatMealEntry.Date;
-            cheatMealEntryToUpdate.Calories = cheatMealEntry.Calories;
-            cheatMealEntryToUpdate.MealName = cheatMealEntry.MealName;
-            DataStorage.SaveData(cheatMealEntries);
+
+            meal.MealName = updatedMeal.MealName;
+            meal.Calories = updatedMeal.Calories;
+            meal.Date = updatedMeal.Date;
+
+            weightService.UpdateEntry(updatedWeight, meal.WeightEntryGUID);
+
+            DataStorage.SaveData(allMeals);
         }
 
+        public void DeleteMeal(string guid)
+        {
+            List<CheatMealEntry> allMeals = GetAllMeals();
+            CheatMealEntry meal = GetMealByGuid(guid);
+
+            if (meal == null)
+            {
+                throw new RecordNotFoundExeption(guid);
+            }
+
+            weightService.DeleteEntry(meal.WeightEntryGUID);
+
+            allMeals.Remove(meal);
+            DataStorage.SaveData(allMeals);
+        }
+
+        public bool IsWeightUsedInMeal(string weightGuid)
+        {
+            List<CheatMealEntry> allMeals = GetAllMeals();
+
+            foreach (CheatMealEntry meal in allMeals)
+            {
+                if (meal.WeightEntryGUID == weightGuid)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }
-
