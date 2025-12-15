@@ -57,7 +57,7 @@ namespace FitnessTrackerApp.View
             {
                 Name = name,
                 UserName = username,
-                Password = PasswordManager.GetSaltedHash(password),
+                Password = password,
                 Height = height,
                 Gender = gender,
                 DateofBirth = dob

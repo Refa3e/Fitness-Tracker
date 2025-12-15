@@ -15,7 +15,7 @@ namespace FitnessTrackerApp.Service
             {
                 if (string.Equals(user.UserName, username, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    return PasswordManager.VerifyPassword(password, user.Password);
+                    return user.Password == password;
                 }
             }
 

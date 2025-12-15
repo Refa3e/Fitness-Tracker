@@ -35,9 +35,9 @@ namespace FitnessTrackerApp
                 Name = "Mohamed Refaie",
                 Gender = Enumeration.Gender.MALE,
                 UserName = "Refa3e",
-                Password = PasswordManager.GetSaltedHash("1111"),
+                Password = "1111",
                 Height = 183,
-                DateofBirth = new DateTime(2006, 9, 14)
+                DateofBirth = new DateTime(2006, 09, 13)
             };
 
             try

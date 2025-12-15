@@ -87,7 +87,7 @@ namespace FitnessTrackerApp.View
                 return;
             }
 
-            user.Password = PasswordManager.GetSaltedHash(password);
+            user.Password = password;
             userService.UpdateUser(user);
 
             LoadData();
