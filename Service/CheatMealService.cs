@@ -2,6 +2,7 @@
 using FitnessTrackerApp.Model;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FitnessTrackerApp.Service
 {
@@ -64,18 +65,35 @@ namespace FitnessTrackerApp.Service
 
             return null;
         }
+        public List<WeightEntry> GetAllEntries()
+        {
+            return DataStorage.LoadData<WeightEntry>();
+        }
+
+      
+
 
         public void AddNewMeal(CheatMealEntry newMeal, WeightEntry newWeight)
         {
-            WeightEntry savedWeight = weightService.AddNewEntry(newWeight);
+            // لو GUID فاضي → Add جديد
+            if (string.IsNullOrEmpty(newMeal.GUID))
+            {
+                WeightEntry savedWeight = weightService.AddNewEntry(newWeight);
 
-            newMeal.WeightEntryGUID = savedWeight.GUID;
-            newMeal.GUID = Guid.NewGuid().ToString();
+                newMeal.WeightEntryGUID = savedWeight.GUID;
+                newMeal.GUID = Guid.NewGuid().ToString();
+            }
+            else
+            {
+                // Undo → رجّع الوزن القديم بنفس GUID
+                weightService.AddExistingEntry(newWeight);
+            }
 
             List<CheatMealEntry> allMeals = GetAllMeals();
             allMeals.Add(newMeal);
             DataStorage.SaveData(allMeals);
         }
+
 
         public void UpdateMeal(CheatMealEntry updatedMeal, WeightEntry updatedWeight)
         {
@@ -96,10 +114,16 @@ namespace FitnessTrackerApp.Service
             DataStorage.SaveData(allMeals);
         }
 
+        public WeightEntry GetEntryByGuid(string guid)
+        {
+            List<WeightEntry> allWeights = DataStorage.LoadData<WeightEntry>();
+            return allWeights.FirstOrDefault(w => w.GUID == guid);
+        }
         public void DeleteMeal(string guid)
         {
             List<CheatMealEntry> allMeals = GetAllMeals();
-            CheatMealEntry meal = GetMealByGuid(guid);
+
+            CheatMealEntry meal = allMeals.FirstOrDefault(m => m.GUID == guid);
 
             if (meal == null)
             {
@@ -111,6 +135,7 @@ namespace FitnessTrackerApp.Service
             allMeals.Remove(meal);
             DataStorage.SaveData(allMeals);
         }
+
 
         public bool IsWeightUsedInMeal(string weightGuid)
         {

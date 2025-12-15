@@ -29,6 +29,14 @@ namespace FitnessTrackerApp.Service
             return entries;
         }
 
+        public void AddExistingEntry(WeightEntry weight)
+        {
+            List<WeightEntry> allWeights = DataStorage.LoadData<WeightEntry>();
+            allWeights.Add(weight);
+            DataStorage.SaveData(allWeights);
+        }
+
+
         public List<WeightEntry> GetEntriesDescending(string username)
         {
             List<WeightEntry> ascending = GetEntriesAscending(username);

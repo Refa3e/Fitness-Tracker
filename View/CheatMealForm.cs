@@ -1,9 +1,12 @@
 ﻿using FitnessTrackerApp.Model;
 using FitnessTrackerApp.Service;
+using FitnessTrackerApp.Utility;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace FitnessTrackerApp.View
 {
@@ -16,8 +19,7 @@ namespace FitnessTrackerApp.View
         private bool isUpdateMode = false;
         private string currentGuid = "";
 
-        private Stack<CheatMealEntry> deletedMeals = new Stack<CheatMealEntry>();
-
+        private StackManager<deleteedmeals> deletedMeals = new StackManager<deleteedmeals>();
         public CheatMealForm(string username)
         {
             this.username = username;
@@ -170,6 +172,8 @@ namespace FitnessTrackerApp.View
             UpdateButtonText();
         }
 
+       
+
         private void btnDelete_Click(object sender, EventArgs e)
         {
             if (dataGridView.SelectedRows.Count == 0)
@@ -184,35 +188,53 @@ namespace FitnessTrackerApp.View
             }
 
             string guid = dataGridView.SelectedRows[0].Cells[4].Value.ToString();
-            CheatMealEntry meal = cheatMealService.GetMealByGuid(guid);
 
-            deletedMeals.Push(meal);
+            // احصل على الـ Meal والـ Weight قبل ما تمسحهم
+            CheatMealEntry meal = cheatMealService.GetMealByGuid(guid);
+            WeightEntry weight = cheatMealService.GetEntryByGuid(meal.WeightEntryGUID); // لو الكلاس عنده دالة GetEntryByGuid
+
+            // ضَعهم مع بعض في Stack
+            deleteedmeals deleted = new deleteedmeals(meal, weight);
+            deletedMeals.PushDeletedItem(deleted);
+
             cheatMealService.DeleteMeal(guid);
 
+            dataGridView.Rows.Clear();
             LoadTable();
+            dataGridView.Refresh();
+
             MessageBox.Show("Cheat meal deleted successfully!");
         }
 
+        
+
+
+
         private void Undoo_Click(object sender, EventArgs e)
         {
-            if (deletedMeals.Count == 0)
+            if (!deletedMeals.HasItems())
             {
                 MessageBox.Show("Nothing to undo!");
                 return;
             }
 
-            CheatMealEntry meal = deletedMeals.Pop();
+            deleteedmeals deleted = deletedMeals.UndoDelete();
 
-            WeightEntry weight = new WeightEntry
+            if (deleted == null)
             {
-                UserName = username,
-                Date = meal.Date,
-                Weight = weightService.GetLatestEntry(username).Weight
-            };
+                MessageBox.Show("Undo failed!");
+                return;
+            }
 
-            cheatMealService.AddNewMeal(meal, weight);
+            cheatMealService.AddNewMeal(deleted.Meal, deleted.Weight);
+
+            dataGridView.Rows.Clear();
             LoadTable();
+            dataGridView.Refresh();
+
             MessageBox.Show("Undo successful!");
         }
+
+
     }
 }

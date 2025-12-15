@@ -36,7 +36,18 @@ namespace FitnessTrackerApp.Utility
             top = newNode;
         }
 
-     
+        public T Pop()
+        {
+            if (top == null)
+            {
+                return default(T); 
+            }
+
+            T data = top.Data;
+            top = top.Next;
+            return data;
+        }
+
         public T UndoDelete()
         {
             if (top == null)
