@@ -6,31 +6,50 @@ using System.Threading.Tasks;
 
 namespace FitnessTrackerApp.Utility
 {
+
+    internal class Node<T>
+    {
+        public T Data { get; set; }
+        public Node<T> Next { get; set; }
+
+        public Node(T data)
+        {
+            Data = data;
+            Next = null;
+        }
+    }
     internal class StackManager<T>
     {
-        private Stack<T> deletedItems;
+        
+        private Node<T> top;   
 
         public StackManager()
         {
-            deletedItems = new Stack<T>();
+            top = null;
         }
 
+      
         public void PushDeletedItem(T item)
         {
-            deletedItems.Push(item);
+            Node<T> newNode = new Node<T>(item);
+            newNode.Next = top;
+            top = newNode;
         }
 
+     
         public T UndoDelete()
         {
-            if (deletedItems.Count == 0)
+            if (top == null)
                 return default;
 
-            return deletedItems.Pop();
+            T data = top.Data;
+            top = top.Next;
+            return data;
         }
 
         public bool HasItems()
         {
-            return deletedItems.Count > 0;
+            return top != null;
         }
     }
 }
